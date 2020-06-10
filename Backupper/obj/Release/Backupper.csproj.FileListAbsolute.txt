@@ -1,0 +1,11 @@
+E:\Programming\Projects\C#\BackupTool\Bin\Release\appconfig.json
+E:\Programming\Projects\C#\BackupTool\Bin\Release\Backupper.exe.config
+E:\Programming\Projects\C#\BackupTool\Bin\Release\Backupper.exe
+E:\Programming\Projects\C#\BackupTool\Bin\Release\Backupper.pdb
+E:\Programming\Projects\C#\BackupTool\Backupper\obj\Release\Backupper.csprojAssemblyReference.cache
+E:\Programming\Projects\C#\BackupTool\Backupper\obj\Release\MyApplication.Properties.Resources.resources
+E:\Programming\Projects\C#\BackupTool\Backupper\obj\Release\Backupper.csproj.GenerateResource.cache
+E:\Programming\Projects\C#\BackupTool\Backupper\obj\Release\Backupper.csproj.CoreCompileInputs.cache
+E:\Programming\Projects\C#\BackupTool\Backupper\obj\Release\Backupper.csproj.CopyComplete
+E:\Programming\Projects\C#\BackupTool\Backupper\obj\Release\Backupper.exe
+E:\Programming\Projects\C#\BackupTool\Backupper\obj\Release\Backupper.pdb

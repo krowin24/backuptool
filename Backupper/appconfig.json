@@ -1,0 +1,19 @@
+
+{
+  "Application": {
+    "Interval": 30000,
+    "SavedataPath": "./savedata",
+    "SavedataFormat": "yyyy-MM-dd HHmmss",
+    "ArchiveFormat": "yyyy-MM-dd_HHmmss",
+    "ContainerName": "se-backup"
+  },
+
+  "Openstack": {
+    "UserName": "gncu68815818",
+    "Password": "8Xsa0uAAudGthQpH5uC%ysugfghASDfhe4",
+    "TenantName": "gnct68815818",
+    "TenantId": "9f4893a49d4b4055b1388a2a0ba3683f",
+    "Region": "tyo2",
+    "IdentityServiceURL": "https://identity.tyo2.conoha.io/v2.0"
+  }
+}

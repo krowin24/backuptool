@@ -1,0 +1,11 @@
+[APP] Initialized the logger.
+[APP] ConoHa core created.
+[APP] Authenticate the open stack with your identity provider.
+[APP] Identity authenticate request.
+[APP] Authentication was successful.
+[APP] Application start.
+[APP] Timer tick event.
+[APP] Timer thread Id [4]
+[APP] The same file is in object storage.
+[APP] Application end.
+[APP] Finalized the logger.
