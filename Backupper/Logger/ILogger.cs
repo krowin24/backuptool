@@ -14,7 +14,7 @@ namespace MyApplication {
     /// <summary>
     /// Log File operation Interface.
     /// </summary>
-    public interface ILogger{
+    public interface ILogger : IDisposable{
 
         #region Method
 
@@ -31,12 +31,6 @@ namespace MyApplication {
         /// <param name="Message">Log message</param>
         /// <param name="Level">Log message level</param>
         void WriteLine(System.String Message, eLogLevel Level = eLogLevel.APPLICATION);
-
-        #endregion
-
-        #region Property
-
-
 
         #endregion
 

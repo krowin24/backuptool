@@ -18,4 +18,3 @@ E:\Programming\Projects\C#\BackupTool\ConoHaNet\obj\Debug\ConoHaNet.csproj.CoreC
 E:\Programming\Projects\C#\BackupTool\ConoHaNet\obj\Debug\ConoHaNet.csproj.CopyComplete
 E:\Programming\Projects\C#\BackupTool\ConoHaNet\obj\Debug\ConoHaNet.dll
 E:\Programming\Projects\C#\BackupTool\ConoHaNet\obj\Debug\ConoHaNet.pdb
-E:\Programming\Projects\C#\BackupTool\ConoHaNet\obj\Debug\ConoHaNet.csprojAssemblyReference.cache

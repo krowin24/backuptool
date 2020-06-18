@@ -1,5 +1,7 @@
 ﻿
+using Microsoft.Extensions.Options;
 using MyApplication.Archive;
+using MyApplication.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,9 +14,7 @@ namespace MyApplication.Operators {
 
         #region Member
 
-        private System.Timers.Timer m_Timer = null;
-
-        private IOpenStackOperator m_ConoHaOperator = null;
+        //private System.Timers.Timer m_Timer = null;
 
         private IArchiver m_Zipper = null;
         private ILogger m_Logger = null;
@@ -23,52 +23,28 @@ namespace MyApplication.Operators {
 
         #endregion
 
-        public ApplicationOperator() {
-            this.m_Timer = new System.Timers.Timer();
+        public ApplicationOperator(IOpenStackService openstack, IOptions<Models.ApplicationOptions> options) {
+
+            //this.m_Timer = new System.Timers.Timer();
             this.m_Zipper = new MyApplication.Archive.Zip(this);
             this.m_Unit = new DataCapacityUnit() { Bytes = 0 };
 
-            // セーブデータディレクトリのパスをチェック。
-            // 中身がなければ、 ./savedata で初期化する。
-            if (String.IsNullOrEmpty(SavedataDirectoryPath))
-                SavedataDirectoryPath = "./savedata";
-
-            // テンポラリ用ディレクトリのパスをチェック。
-            // 中身がなければ、 ./temp で初期化する。
-            if (String.IsNullOrEmpty(TemporaryPath))
-                TemporaryPath = "./temp";
-
-            // セーブデータディレクトリの名前形式をチェック。
-            // 中身がなければ、yyyy-MM-dd HHmmss で初期化する。
-            if (String.IsNullOrEmpty(SavedataDateTimeFormat))
-                SavedataDateTimeFormat = "yyyy-MM-dd HHmmss";
-
-            // アーカイブファイルの日付形式をチェック。
-            // 中見がなければ、yyyy-MM-dd_HHmmss で初期化する。
-            if (String.IsNullOrEmpty(ArchiveDateTimeFormat))
-                ArchiveDateTimeFormat = "yyyy-MM-dd_HHmmss";
-
-            // オブジェクトストレージで使うコンテナ名をチェック。
-            // 中身がなければ、backup で初期化する。
-            if (String.IsNullOrEmpty(ArchiveContainerName))
-                ArchiveContainerName = "backup";
-
-            // セーブデータディレクトリがあるかどうかチェックする。なければ作る。
-            if (!System.IO.Directory.Exists(SavedataDirectoryPath))
-                System.IO.Directory.CreateDirectory(SavedataDirectoryPath);
+            this.Options = options.Value;
+            this.OpenStack = openstack;
 
             // イベント登録
-            this.m_Timer.Elapsed += this.OnTimerTick;
+            //this.m_Timer.Elapsed += this.OnTimerTick;
             this.m_Zipper.AsyncEnd += this.OnAsyncCompressed;
+
         }
 
         ~ApplicationOperator() {
 
             this.m_Zipper.AsyncEnd -= this.OnAsyncCompressed;
-            this.m_Timer.Elapsed -= this.OnTimerTick;
+            //this.m_Timer.Elapsed -= this.OnTimerTick;
 
-            this.m_Timer?.Close();
-            this.m_Timer?.Dispose();
+            //this.m_Timer?.Close();
+            //this.m_Timer?.Dispose();
 
         }
 
@@ -76,131 +52,147 @@ namespace MyApplication.Operators {
 
         public void Run() {
 
+            this.Logger.WriteLine("Application start.");
+
             this.Logger.WriteLine("Authenticate the open stack with your identity provider.");
 
-            if (!this.OpenStack.Authenticate()) {
+            if (!this.OpenStack.Authenticate())
+            {
                 this.Logger.WriteLine("Could not authenticate with the entered parameters.");
                 return;
             }
 
             this.Logger.WriteLine("Authentication was successful.");
 
-            this.Logger.WriteLine("Application start.");
+            this.Execute();
 
-            this.m_Timer.Start();
+            /*
+                        this.m_Timer.Start();
+                        while (this.m_Timer.Enabled) {
+                            System.Console.Clear();
 
-            while (this.m_Timer.Enabled) {
-                System.Console.Clear();
+                            System.Console.WriteLine("=======================================");
+                            System.Console.WriteLine("              Backup Tool              ");
+                            System.Console.WriteLine("=======================================");
+                            System.Console.WriteLine("Using open stack system is [" + OpenStack.Type + "]");
+                            System.Console.WriteLine("[Commands]");
+                            System.Console.WriteLine("-show: show info of a container or a object.(Example: show container/object name)");
+                            System.Console.WriteLine("-delete: delete request on container or object.(Example: delete container/object containername [objectname])");
+                            System.Console.WriteLine("-allcontainer: show all container infos.");
+                            System.Console.WriteLine("-stop: application end.");
+                            System.Console.WriteLine("=======================================");
+                            System.Console.Write(">");
 
-                System.Console.WriteLine("=======================================");
-                System.Console.WriteLine("              Backup Tool              ");
-                System.Console.WriteLine("=======================================");
-                System.Console.WriteLine("Using open stack system is [" + OpenStack.Type + "]");
-                System.Console.WriteLine("[Commands]");
-                System.Console.WriteLine("-show: show info of a container or a object.(Example: show container/object name)");
-                System.Console.WriteLine("-delete: delete request on container or object.(Example: delete container/object containername [objectname])");
-                System.Console.WriteLine("-allcontainer: show all container infos.");
-                System.Console.WriteLine("-stop: application end.");
-                System.Console.WriteLine("=======================================");
-                System.Console.Write(">");
+                            System.String Commands = System.Console.ReadLine();
 
-                System.String Commands = System.Console.ReadLine();
+                            string[] Input = Commands.Split(' ');
 
-                string[] Input = Commands.Split(' ');
+                            System.Console.WriteLine("\r\n");
 
-                System.Console.WriteLine("\r\n");
+                            IEnumerable<Objects.Container> ContainerList = null;
+                            IEnumerable<Objects.ContainerObject> ObjectList = null;
 
-                IEnumerable<Objects.Container> ContainerList = null;
-                IEnumerable<Objects.ContainerObject> ObjectList = null;
+                            int? limit = null;
 
-                int? limit = null;
+                            switch (Input[0]) {
+                                case "show":
 
-                switch (Input[0]) {
-                    case "show":
+                                    if ((Input.Length > 5) && !(Input.Length > 2)) break;
 
-                        if ((Input.Length > 5) && !(Input.Length > 2)) break;
+                                    if (!string.IsNullOrEmpty(Input[1]) && (Input[1] == "container")) {
 
-                        if (!string.IsNullOrEmpty(Input[1]) && (Input[1] == "container")) {
+                                        if ((Input.Length == 4) && !string.IsNullOrEmpty(Input[3]))
+                                            limit = (int.Parse(Input[3]) > 0) ? int.Parse(Input[3]) : 0;
 
-                            if ((Input.Length == 4) && !string.IsNullOrEmpty(Input[3]))
-                                limit = (int.Parse(Input[3]) > 0) ? int.Parse(Input[3]) : 0;
+                                        ContainerList = OpenStack.GetContainers();
 
-                            ContainerList = OpenStack.GetContainers();
-
-                            if (!(ContainerList.Count() > 0)) {
-                                System.Console.WriteLine("No container.");
-                                break;
-                            }
-
-                            foreach (var entry in ContainerList) {
-                                if (entry.Name == Input[2]) {
-                                    System.Console.WriteLine(String.Format("[{0}]   [{1}]   [{2:#,0}]", entry.Name, entry.Count, entry.Bytes));
-                                    System.Console.WriteLine("-------------------------");
-
-                                    ObjectList = OpenStack.GetContainerObjects(entry.Name, ((limit > 0) ? limit : null));
-
-                                    if (ObjectList.Count() > 0) {
-                                        foreach (var item in ObjectList) {
-                                            System.Console.WriteLine(String.Format("|-[{0}] [{1} bytes] [{2}] [{3}] [{4}]", item.Name, item.Bytes, item.ContentType, item.LastModified, item.Hash));
+                                        if (!(ContainerList.Count() > 0)) {
+                                            System.Console.WriteLine("No container.");
+                                            break;
                                         }
-                                    } else 
-                                        System.Console.WriteLine("No object.");
 
-                                    System.Console.WriteLine("-------------------------");
+                                        foreach (var entry in ContainerList) {
+                                            if (entry.Name == Input[2]) {
+                                                System.Console.WriteLine(String.Format("[{0}]   [{1}]   [{2:#,0}]", entry.Name, entry.Count, entry.Bytes));
+                                                System.Console.WriteLine("-------------------------");
+
+                                                ObjectList = OpenStack.GetContainerObjects(entry.Name, ((limit > 0) ? limit : null));
+
+                                                if (ObjectList.Count() > 0) {
+                                                    foreach (var item in ObjectList) {
+                                                        System.Console.WriteLine(String.Format("|-[{0}] [{1} bytes] [{2}] [{3}] [{4}]", item.Name, item.Bytes, item.ContentType, item.LastModified, item.Hash));
+                                                    }
+                                                } else 
+                                                    System.Console.WriteLine("No object.");
+
+                                                System.Console.WriteLine("-------------------------");
+                                                break;
+                                            }
+                                        }
+                                    }
+
+                                    System.Console.ReadLine();
                                     break;
-                                }
+                                case "delete":
+                                    if ((Input.Length != 3) || string.IsNullOrEmpty(Input[2])) break;
+
+                                    if ((Input[1] == "container") && OpenStack.SearchContainer(Input[2])) {
+                                        OpenStack.DeleteContainer(Input[2], true);
+                                    }
+
+                                    if ((Input.Length != 4) || string.IsNullOrEmpty(Input[2]) || string.IsNullOrEmpty(Input[3])) break;
+
+                                    if (Input[1] == "object" && OpenStack.SearchObject(Input[2], Input[3])) {
+                                        OpenStack.DeleteObject(Input[2], Input[3]);
+                                    }
+                                    break;
+                                case "allcontainer":
+                                    this.m_Unit.Bytes = 0;
+
+                                    ContainerList = OpenStack.GetContainers();
+
+                                    if (ContainerList.Count() > 0) {
+                                        foreach (var entry in ContainerList) {
+                                            this.m_Unit.Bytes += entry.Bytes;
+                                            System.Console.WriteLine(String.Format("    [{0}]   [{1}]   [{2:#,0}]", entry.Name, entry.Count, entry.Bytes));
+                                        }
+
+                                        System.Console.WriteLine("\r\nObjectstorage Usage [" + FormatDataUnitToString(this.m_Unit.Bytes, 2) + "]\r\n");
+
+                                    } else {　System.Console.WriteLine("No containers."); }
+
+                                    System.Console.ReadLine();
+                                    break;
+                                case "exit":
+                                case "stop":
+                                    this.m_Timer.Stop();
+                                    break;
+                                default:
+                                    break;
                             }
+
                         }
-
-                        System.Console.ReadLine();
-                        break;
-                    case "delete":
-                        if ((Input.Length != 3) || string.IsNullOrEmpty(Input[2])) break;
-
-                        if ((Input[1] == "container") && OpenStack.SearchContainer(Input[2])) {
-                            OpenStack.DeleteContainer(Input[2], true);
-                        }
-
-                        if ((Input.Length != 4) || string.IsNullOrEmpty(Input[2]) || string.IsNullOrEmpty(Input[3])) break;
-
-                        if (Input[1] == "object" && OpenStack.SearchObject(Input[2], Input[3])) {
-                            OpenStack.DeleteObject(Input[2], Input[3]);
-                        }
-                        break;
-                    case "allcontainer":
-                        this.m_Unit.Bytes = 0;
-
-                        ContainerList = OpenStack.GetContainers();
-
-                        if (ContainerList.Count() > 0) {
-                            foreach (var entry in ContainerList) {
-                                this.m_Unit.Bytes += entry.Bytes;
-                                System.Console.WriteLine(String.Format("    [{0}]   [{1}]   [{2:#,0}]", entry.Name, entry.Count, entry.Bytes));
-                            }
-
-                            System.Console.WriteLine("\r\nObjectstorage Usage [" + FormatDataUnitToString(this.m_Unit.Bytes, 2) + "]\r\n");
-
-                        } else {　System.Console.WriteLine("No containers."); }
-
-                        System.Console.ReadLine();
-                        break;
-                    case "exit":
-                    case "stop":
-                        this.m_Timer.Stop();
-                        break;
-                    default:
-                        break;
-                }
-
-            }
+            */
 
             this.Logger.WriteLine("Application end.");
+
+            this.m_Logger.Dispose();
+
         }
 
-        private void OnTimerTick(object Sender, System.EventArgs e) {
-            
-            this.Logger?.WriteLine("Timer tick event.");
-            this.Logger?.WriteLine(System.String.Format("Timer thread Id [{0}]", System.Threading.Thread.CurrentThread.ManagedThreadId));
+        public void Execute() {
+
+            // セーブデータディレクトリがあるかどうかチェックする。なければ作る。
+            if (!System.IO.Directory.Exists(Options.SavedataPath))
+                System.IO.Directory.CreateDirectory(Options.SavedataPath);
+
+            // テンポラリ用ディレクトリのパスをチェック。
+            // 中身がなければ、 ./temp で初期化する。
+            if (String.IsNullOrEmpty(TemporaryPath))
+                TemporaryPath = "./temp";
+
+            // アプリケーションのパスを取得します。
+            this.UpdateBasePath();
 
             // コンテナリスト
             System.Collections.Generic.IEnumerable<MyApplication.Objects.Container> ContainerList = OpenStack.GetContainers();
@@ -219,9 +211,9 @@ namespace MyApplication.Operators {
 
                 // 全体で50GB以上使用してるなら、オブジェクトストレージ内を一掃する。
                 if (Unit.Giga > 50) {
-                    //foreach (var entry in ConoHaContainers) { ConoHaNet.DeleteContainer(entry.Name, true); }
+                    foreach (var entry in ContainerList) { OpenStack.DeleteContainer(entry.Name, true); }
 
-                    this.Logger?.WriteLine("Object storage clean up executed.");
+                    this.Logger.WriteLine("Object storage clean up executed.");
                 }
 
             }
@@ -232,14 +224,14 @@ namespace MyApplication.Operators {
             // 多重防止用汎用フラグ。存在するなら true, しないなら false
             bool IsExists = false;
 
-            if(!OpenStack.SearchContainer(this.ArchiveContainerName)) OpenStack.CreateContainer(this.ArchiveContainerName);
+            if(!OpenStack.SearchContainer(Options.UseContainerName)) OpenStack.CreateContainer(Options.UseContainerName);
 
             // ローカル内の最新セーブデータ日付
             string LastDateInLocal = null;
 
             try {
                 // セーブデータがあるディレクトリのサブディレクトリを列挙します。
-                string[] SubDirectories = System.IO.Directory.GetDirectories(SavedataDirectoryPath, "*", System.IO.SearchOption.TopDirectoryOnly);
+                string[] SubDirectories = System.IO.Directory.GetDirectories(Options.SavedataPath, "*", System.IO.SearchOption.TopDirectoryOnly);
 
                 // サブディレクトリが１個もなければ、なにもしません。
                 if (SubDirectories.Length > 0) {
@@ -250,24 +242,24 @@ namespace MyApplication.Operators {
                     foreach (var entry in SubDirectories) { FormatList.Add(System.IO.Path.GetFileName(entry)); }
 
                     // ローカル内の最新日付を取得します。
-                    LastDateInLocal = this.GetLastedSavedataDateTime(FormatList);
+                    LastDateInLocal = this.GetLastedDateTime(FormatList, Options.SavedataFormat);
 
                 }
 
             } catch (System.Exception ex) {
-                this.Logger?.WriteLine(ex.Message, eLogLevel.ERROR);
+                this.Logger.WriteLine(ex.Message, eLogLevel.ERROR);
             }
 
             // ローカルのセーブデータ名の取得に失敗してたならエラーなので、関数を抜けます。
             if (string.IsNullOrEmpty(LastDateInLocal)) {
-                this.Logger?.WriteLine("Failed to get local save data name.", eLogLevel.ERROR);
+                this.Logger.WriteLine("Failed to get local save data name.", eLogLevel.ERROR);
                 return;
             }
 
             // アップロード準備
-            // 日付の形式をアップロード用に変化させます。
-            DateTime offset = DateTime.ParseExact(LastDateInLocal, this.SavedataDateTimeFormat, null);
-            string ArchiveFileName = offset.ToString(this.ArchiveDateTimeFormat) + ".zip";
+            // 日付の文字列形式をアップロード用に変化させます。
+            DateTime offset = DateTime.ParseExact(LastDateInLocal, Options.SavedataFormat, null);
+            string ArchiveFileName = offset.ToString(Options.ArchiveFormat) + ".zip";
 
             IsExists = false;
 
@@ -277,10 +269,10 @@ namespace MyApplication.Operators {
             if (ContainerList.Count() > 0) {
 
                 // 既に同名のアーカイブがオブジェクトストレージ内にあるならアップロードしません。
-                if (OpenStack.SearchObject(this.ArchiveContainerName, ArchiveFileName)) {
+                if (OpenStack.SearchObject(Options.UseContainerName, ArchiveFileName)) {
                     IsExists = true;
 
-                    this.Logger?.WriteLine("The same file is in object storage.");
+                    this.Logger.WriteLine("The same file is in object storage.");
 
                 }
             }
@@ -290,16 +282,17 @@ namespace MyApplication.Operators {
                 System.IO.Directory.CreateDirectory(this.TemporaryPath);
 
             // オブジェクトストレージに同一アーカイブがないなら圧縮しません。
-            if (!IsExists) {
+            if (!IsExists)
 
                 // ローカル内のセーブデータディレクトリをzip形式に圧縮します。
-                this.m_Zipper.Compress(this.SavedataDirectoryPath + "/" + LastDateInLocal, this.TemporaryPath + "/" + ArchiveFileName);
+                this.m_Zipper.Compress(Options.SavedataPath + "/" + LastDateInLocal, this.TemporaryPath + "/" + ArchiveFileName);
 
-            }
 
         }
 
-        #region Provate
+        #region Private
+
+        private void OnTimerTick(object Sender, System.EventArgs e) {}
 
         private void OnAsyncCompressed(object Sender, Archive.ArchiveEventArgs e) {
 
@@ -315,7 +308,7 @@ namespace MyApplication.Operators {
                 Data = new System.IO.FileStream(e.Destnation, System.IO.FileMode.Open, System.IO.FileAccess.Read);
 
                 // オブジェクトストレージの指定コンテナにアーカイブをアップロードします。
-                OpenStack.CreateObject(this.ArchiveContainerName, System.IO.Path.GetFileName(e.Destnation), Data, eContentType.CONTENTS_ARCHIVE_ZIP);
+                OpenStack.CreateObject(Options.UseContainerName, System.IO.Path.GetFileName(e.Destnation), Data, eContentType.CONTENTS_ARCHIVE_ZIP);
 
                 this.Logger?.WriteLine("Archive file uploaded.");
 
@@ -326,51 +319,39 @@ namespace MyApplication.Operators {
                 Data?.Close();
                 Data?.Dispose();
 
-                // コンテナのメタデータを更新します。
-                
-
                 // 圧縮したファイルとテンポラリディレクトリを片付けます。
-                //System.IO.File.Delete(this.ArchiveDirectoryPath + "/" + ArchiveFileName);
+                System.IO.File.Delete(this.TemporaryPath + "/" + e.Destnation);
                 System.IO.Directory.Delete(this.TemporaryPath, true);
             }
 
         }
 
-        private System.String GetLastedSavedataDateTime(System.Collections.Generic.IEnumerable<System.String> DirectoryNames) {
+        private System.String GetLastedDateTime(System.Collections.Generic.IEnumerable<System.String> DirectoryNames, string Format) {
+
+            if (DirectoryNames is null) return null;
+            if (string.IsNullOrEmpty(Format)) return null;
 
             // 最新日付(最小値で初期化)
             System.DateTime First = DateTime.MinValue;
 
-            try {
+            // コレクションの中身が１個もなければ、なにもしない。
+            if (DirectoryNames.Count() > 0) {
 
-                // コレクションパラメータをチェック。nullならば例外をスロー。
-                if (DirectoryNames == null)
-                    throw new System.NullReferenceException("DirectoryNames parameter is null.");
-
-                // コレクションの中身が１個もなければ、なにもしない。
-                if (DirectoryNames.Count() > 0) {
-
-                    // 比較用の日付リスト
-                    List<System.DateTime> DateList = new List<DateTime>(DirectoryNames.Count());
+                // 比較用の日付リスト
+                List<System.DateTime> DateList = new List<DateTime>(DirectoryNames.Count());
                 
-                    // 文字列を日付に変換して格納
-                    foreach (var entry in DirectoryNames) { DateList.Add(System.DateTime.ParseExact(entry, this.SavedataDateTimeFormat, null)); }
+                // 文字列を日付に変換して格納
+                foreach (var entry in DirectoryNames) { DateList.Add(System.DateTime.ParseExact(entry, Format, null)); }
 
-                    // 最初は適当に代入。
-                    First = DateList[0];
+                // 最初は適当に代入。
+                First = DateList[0];
 
-                    // 日付比較と最新日付の代入。
-                    foreach (var entry in DateList) {
-                        if (First < entry) { First = entry; }
-                    }
+                // 日付比較と最新日付の代入。
+                foreach (var entry in DateList) { if (First < entry) { First = entry; } }
 
-                }
-                
-            } catch (System.Exception ex){
-                this.Logger?.WriteLine(ex.Message, eLogLevel.ERROR);
             }
 
-            return (First == DateTime.MinValue) ? null : First.ToString(this.SavedataDateTimeFormat);
+            return (First == DateTime.MinValue) ? null : First.ToString(Options.SavedataFormat);
         }
 
         /// <summary>
@@ -429,6 +410,7 @@ namespace MyApplication.Operators {
             return Amount.ToString() + " Bytes"; //byte
         }
 
+        private void UpdateBasePath() { this.ApplicationPath = System.IO.Directory.GetParent(System.Reflection.Assembly.GetExecutingAssembly().Location).FullName; }
 
         #endregion
 
@@ -436,22 +418,13 @@ namespace MyApplication.Operators {
 
         #region Property
 
-        public double ExecuteInterval {
-            set { if (this.m_Timer != null) this.m_Timer.Interval = value; }
-            get { return (this.m_Timer == null) ? -1 : this.m_Timer.Interval; }
-        }
-        
-        public string SavedataDirectoryPath { set; get; }
+        public Models.ApplicationOptions Options { set; get; }
 
-        public string SavedataDateTimeFormat { set; get; }
+        private string TemporaryPath { set; get; }
 
-        public string ArchiveContainerName { set; get; }
+        private string ApplicationPath { set; get; }
 
-        public string ArchiveDateTimeFormat { set; get; }
-
-        public string TemporaryPath { private set; get; }
-
-        #endregion
+        private IOpenStackService OpenStack { set; get; }
 
         public ILogger Logger {
             get {
@@ -460,13 +433,7 @@ namespace MyApplication.Operators {
             }
         }
 
-        public IOpenStackOperator OpenStack {
-            get {
-                if (this.m_ConoHaOperator == null)
-                    this.m_ConoHaOperator = new ConoHaOperator(this);
+        #endregion
 
-                return this.m_ConoHaOperator;
-            }
-        }
     }
 }

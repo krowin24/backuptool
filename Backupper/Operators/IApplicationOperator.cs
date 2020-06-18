@@ -1,4 +1,5 @@
 ﻿
+using MyApplication.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,38 +25,9 @@ namespace MyApplication.Operators {
         #region Property
 
         /// <summary>
-        /// Set or Get the processing interval. (ms)
+        /// Set or get the application setting.
         /// </summary>
-        /// <remarks>
-        /// Returns -1 if the timer is not implemented.
-        /// </remarks>
-        double ExecuteInterval { set; get; }
-
-        /// <summary>
-        /// Set or Get the savedata directory path.
-        /// </summary>
-        string SavedataDirectoryPath { set; get; }
-
-        /// <summary>
-        /// Set or Get the date format of the save data directory.
-        /// </summary>
-        /// <remarks>
-        /// (initial value: yyyy-MM-dd HHmmss)
-        /// </remarks>
-        string SavedataDateTimeFormat { set; get; }
-
-        /// <summary>
-        /// Set or get the archive date format.
-        /// </summary>
-        /// <remarks>
-        /// (initial value: yyyy-MM-dd_HHmmss)
-        /// </remarks>
-        string ArchiveDateTimeFormat { set; get; }
-
-        /// <summary>
-        /// Set or Get the Archive container name on object storage.
-        /// </summary>
-        string ArchiveContainerName { set; get; }
+        Models.ApplicationOptions Options { set; get; }
 
         /// <summary>
         /// Get the logger.
@@ -65,7 +37,7 @@ namespace MyApplication.Operators {
         /// <summary>
         /// Get the open stack operating interface.
         /// </summary>
-        IOpenStackOperator OpenStack { get; }
+        //IOpenStackService OpenStack { get; }
 
         #endregion
 

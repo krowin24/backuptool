@@ -5,7 +5,7 @@
     "SavedataPath": "./savedata",
     "SavedataFormat": "yyyy-MM-dd HHmmss",
     "ArchiveFormat": "yyyy-MM-dd_HHmmss",
-    "ContainerName": "se-backup"
+    "UseContainerName": "se-backup"
   },
 
   "Openstack": {

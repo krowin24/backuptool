@@ -2,52 +2,33 @@
 
 using ConoHaNet.Objects;
 using ConoHaNet.Objects.Servers;
-using Microsoft.Extensions.Configuration;
+
 using MyApplication;
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Security.Policy;
 
+using Microsoft.Extensions.DependencyInjection;
+using System.Configuration;
+using MyApplication.Operators;
+
 class Program {
 
-    private static MyApplication.Operators.IApplicationOperator MyOperator = null;
-    private static MyApplication.Config Config = null;
+    private static IServiceProvider ServiceProvider { get; }
 
-    static void Main(string[] Args){
+    static Program()
+        => ServiceProvider = InjectionService.Configure();
 
-        Config = new Config("appconfig.json");
+    static void Main(string[] Args)
+        => ServiceProvider.GetRequiredService<IApplicationOperator>().Run();
 
-        MyOperator = new MyApplication.Operators.ApplicationOperator();
-
-        string UserName = Config.GetValue("Openstack", "UserName");
-        string PassWord = Config.GetValue("Openstack", "Password");
-        string TenantName = Config.GetValue("Openstack", "TenantName");
-        string TenantId = Config.GetValue("Openstack", "TenantId");
-        string Region = Config.GetValue("Openstack", "Region");
-        string IdentityServiceURL = Config.GetValue("Openstack", "IdentityServiceURL");
-
-        MyOperator.ExecuteInterval = System.Double.Parse(Config.GetValue("Application", "Interval"));
-        MyOperator.SavedataDirectoryPath = Config.GetValue("Application", "SavedataPath");
-        MyOperator.SavedataDateTimeFormat = Config.GetValue("Application", "SavedataFormat");
-        MyOperator.ArchiveDateTimeFormat = Config.GetValue("Application", "ArchiveFormat");
-        MyOperator.ArchiveContainerName = Config.GetValue("Application", "ContainerName");
-
-        MyOperator.OpenStack.UserName = UserName;
-        MyOperator.OpenStack.Password = PassWord;
-
-        MyOperator.OpenStack.TenantName = TenantName;
-        MyOperator.OpenStack.TenantId = TenantId;
-
-        MyOperator.OpenStack.DefaultRegion = Region;
-
-        MyOperator.OpenStack.IdentityServiceURL = IdentityServiceURL;
-
-        MyOperator.Run();
-
+}
+    /*
         //ConoHaNet.OpenStackMember StackMember = new ConoHaNet.OpenStackMember(UserName, PassWord, TenantName, TenantId, defaultregion: region, bLazyProviderSetting: false);
 
         //// 認証サーバーのアドレス変更。
@@ -63,39 +44,7 @@ class Program {
         //System.Console.WriteLine("IDの認証成功");
 
         //IEnumerable<ConoHaNet.Objects.Container> ContainerList = StackMember.ListContainers();
-    }
-
-    /// <summary>
-    /// ByteをKB, MB, GB...のような他の形式に変換する。
-    /// (KB, MB, GB, TB, PB, EB, ZB or YB)
-    /// </summary>
-    /// <param name="Amount">変換する数値</param>
-    /// <param name="Rounding">小数点第何位まで表示するか。(例: 小数点第一位までなら１を指定します。)</param>
-    /// <returns></returns>
-    private static System.String FormatSize(long Amount, int Rounding) {
-
-        if (Amount >= Math.Pow(2, 80))
-            return Math.Round(Amount / Math.Pow(2, 70), Rounding).ToString() + " YB"; //yettabyte
-        if (Amount >= Math.Pow(2, 70))
-            return Math.Round(Amount / Math.Pow(2, 70), Rounding).ToString() + " ZB"; //zettabyte
-        if (Amount >= Math.Pow(2, 60))
-            return Math.Round(Amount / Math.Pow(2, 60), Rounding).ToString() + " EB"; //exabyte
-        if (Amount >= Math.Pow(2, 50))
-            return Math.Round(Amount / Math.Pow(2, 50), Rounding).ToString() + " PB"; //petabyte
-        if (Amount >= Math.Pow(2, 40))
-            return Math.Round(Amount / Math.Pow(2, 40), Rounding).ToString() + " TB"; //terabyte
-        if (Amount >= Math.Pow(2, 30))
-            return Math.Round(Amount / Math.Pow(2, 30), Rounding).ToString() + " GB"; //gigabyte
-        if (Amount >= Math.Pow(2, 20))
-            return Math.Round(Amount / Math.Pow(2, 20), Rounding).ToString() + " MB"; //megabyte
-        if (Amount >= Math.Pow(2, 10))
-            return Math.Round(Amount / Math.Pow(2, 10), Rounding).ToString() + " KB"; //kilobyte
-
-        return Amount.ToString() + " Bytes"; //byte
-    }
-
-}
-
+    */
     /*
          
     // ログファイル
